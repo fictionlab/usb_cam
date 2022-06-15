@@ -82,59 +82,63 @@ public:
             return;
         }
 
+        start_cap();
         service_toggle_capture_ = nh.advertiseService("toggle_capture", &UsbCamNodelet::service_toggle_cap, this);
     }
 
     virtual ~UsbCamNodelet()
     {
         service_toggle_capture_.shutdown();
-        std::unique_lock<std::mutex> cam_lock(cam_mutex_);
-        cam_.shutdown();
-        cam_lock.unlock();
+        stop_cap();
         if (publisher_thread_.joinable())
         {
             publisher_thread_.join();
         }
     }
 
+    bool start_cap() {
+        std::unique_lock<std::mutex> cam_lock(cam_mutex_);
+        if (!cam_.is_capturing())
+        {
+            // if capturing was recently stopped, we should wait for thread to finish execution
+            cam_.start(video_device_name_.c_str(), io_method_, pixel_format_, image_width_,
+                    image_height_, framerate_);
+            set_v4l_params_();
+            cam_lock.unlock();
+            try
+            {
+                if (publisher_thread_.joinable())
+                {
+                    publisher_thread_.join();
+                }
+                cam_lock.lock();
+                cam_.start_capturing();
+                publisher_thread_ = std::thread(&UsbCamNodelet::spin, this);
+            }
+            catch (const std::system_error & e)
+            {
+                NODELET_ERROR("Couldn't start image publisher thread - %s", e.code().message().c_str());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool stop_cap() {
+        std::lock_guard<std::mutex> cam_lock(cam_mutex_);
+        if (cam_.is_capturing()) {
+            cam_.shutdown();
+        }
+        return true;
+    }
+
     bool service_toggle_cap(std_srvs::SetBool::Request & req, std_srvs::SetBool::Response & res)
     {
         if (req.data)
-        {
-            std::unique_lock<std::mutex> cam_lock(cam_mutex_);
-            if (!cam_.is_capturing())
-            {
-                // if capturing was recently stopped, we should wait for thread to finish execution
-                cam_.start(video_device_name_.c_str(), io_method_, pixel_format_, image_width_,
-		               image_height_, framerate_);
-                set_v4l_params_();
-                cam_lock.unlock();
-                try
-                {
-                    if (publisher_thread_.joinable())
-                    {
-                        publisher_thread_.join();
-                    }
-                    cam_lock.lock();
-                    cam_.start_capturing();
-                    publisher_thread_ = std::thread(&UsbCamNodelet::spin, this);
-                    res.success = true;
-                }
-                catch (const std::system_error & e)
-                {
-                    NODELET_ERROR("Couldn't start image publisher thread - %s", e.code().message().c_str());
-                }
-            }
-        }
+            res.success = start_cap();
         else
-        {
-            std::lock_guard<std::mutex> cam_lock(cam_mutex_);
-            if (cam_.is_capturing()) {
-                cam_.shutdown();
-            }
-            res.success = true;
-        }
-        return res.success;
+            res.success = stop_cap();
+        return true;
     }
 
     void spin()
