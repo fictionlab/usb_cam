@@ -145,7 +145,7 @@ public:
     {
         if(io_method_ == UsbCam::IO_METHOD_UNKNOWN || pixel_format_ == UsbCam::PIXEL_FORMAT_UNKNOWN)
         {
-            NODELET_ERROR("Unknown IO method % s or Pixel format %s", io_method_name_, pixel_format_name_);
+            NODELET_ERROR_STREAM("Unknown IO method " << io_method_name_ << " or Pixel format " <<  pixel_format_name_);
             return;
         }
 
