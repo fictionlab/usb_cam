@@ -1,8 +1,7 @@
 #include <nodelet/loader.h>
 #include <ros/ros.h>
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   ros::init(argc, argv, "usb_cam");
 
   // Start the ZED Nodelet
