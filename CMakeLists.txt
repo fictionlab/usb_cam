@@ -1,28 +1,24 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(usb_cam)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS image_transport roscpp std_msgs std_srvs sensor_msgs camera_info_manager nodelet)
-
-# Use C++11
-set(CMAKE_CXX_FLAGS "--std=c++11 ${CMAKE_CXX_FLAGS}")
+find_package(catkin REQUIRED COMPONENTS
+  camera_info_manager
+  image_transport
+  nodelet
+  roscpp
+  sensor_msgs
+  std_msgs
+  std_srvs
+)
 
 ## pkg-config libraries
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(avcodec libavcodec REQUIRED)
 pkg_check_modules(swscale libswscale REQUIRED)
 
-###################################################
-## Declare things to be passed to other projects ##
-###################################################
-
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
+  CATKIN_DEPENDS sensor_msgs
   LIBRARIES ${PROJECT_NAME}
 )
 
@@ -65,13 +61,16 @@ target_link_libraries(${PROJECT_NAME}_node
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS ${PROJECT_NAME}_node ${PROJECT_NAME} ${PROJECT_NAME}_nodelet
+install(TARGETS
+  ${PROJECT_NAME}
+  ${PROJECT_NAME}_node
+  ${PROJECT_NAME}_nodelet
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
 # Copy xml files
-install(FILES package.xml nodelet_plugins.xml
+install(FILES nodelet_plugins.xml
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 

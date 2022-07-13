@@ -1,17 +1,17 @@
-<package>
+<?xml version="1.0"?>
+<?xml-model
+  href="http://download.ros.org/schema/package_format3.xsd"
+  schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>usb_cam</name>
   <version>0.3.6</version>
-  <description>A ROS Driver for V4L USB Cameras</description>
+  <description>Driver for V4L USB Cameras</description>
 
-  <maintainer email="rctoris@wpi.edu">Russell Toris</maintainer>
-  <maintainer email="ros-orphaned-packages@googlegroups.com">ROS Orphaned Package Maintainers</maintainer>
-  <author email="benjamin.pitzer@bosch.com">Benjamin Pitzer</author>
-
+  <maintainer email="support@fictionlab.pl">Fictionlab</maintainer>
   <license>BSD</license>
 
-  <url type="website">http://wiki.ros.org/usb_cam</url>
-  <url type="bugtracker">https://github.com/bosch-ros-pkg/usb_cam/issues</url>
-  <url type="repository">https://github.com/bosch-ros-pkg/usb_cam</url>
+  <author email="benjamin.pitzer@bosch.com">Benjamin Pitzer</author>
+  <author email="blazej@fictionlab.pl">Błażej Sowa</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -24,17 +24,19 @@
   <build_depend>camera_info_manager</build_depend>
   <build_depend>nodelet</build_depend>
 
-  <run_depend>image_transport</run_depend>
-  <run_depend>roscpp</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>std_srvs</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>ffmpeg</run_depend>
-  <run_depend>camera_info_manager</run_depend>
-  <run_depend>v4l-utils</run_depend>
-  <run_depend>nodelet</run_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>ffmpeg</exec_depend>
+  <exec_depend>camera_info_manager</exec_depend>
+  <exec_depend>nodelet</exec_depend>
+  <exec_depend>image_view</exec_depend>
 
   <export>
-      <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>
 </package>
