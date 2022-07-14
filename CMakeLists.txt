@@ -41,7 +41,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 ## Build USB camera nodelet library
-add_library(${PROJECT_NAME}_nodelet nodes/usb_cam_nodelet.cpp)
+add_library(${PROJECT_NAME}_nodelet src/usb_cam_nodelet.cpp)
 target_link_libraries(${PROJECT_NAME}_nodelet
   ${PROJECT_NAME}
   ${avcodec_LIBRARIES}
@@ -50,7 +50,7 @@ target_link_libraries(${PROJECT_NAME}_nodelet
 )
 
 ## Declare a cpp executable
-add_executable(${PROJECT_NAME}_node nodes/usb_cam_node.cpp)
+add_executable(${PROJECT_NAME}_node src/usb_cam_node.cpp)
 target_link_libraries(${PROJECT_NAME}_node
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
