@@ -775,8 +775,8 @@ bool UsbCam::init_device(uint32_t image_width, uint32_t image_height, int framer
     ROS_ERROR_STREAM("can't set stream params " << errno);
     return false;  // ("Couldn't query v4l fps!");
   }
-  ROS_ERROR_STREAM(
-    "Capability flag: 0x" << std::hex << stream_params.parm.capture.capability << std::dec);
+  // ROS_ERROR_STREAM(
+  // "Capability flag: 0x" << std::hex << stream_params.parm.capture.capability << std::dec);
   if (!(stream_params.parm.capture.capability & V4L2_CAP_TIMEPERFRAME)) {
     ROS_ERROR("V4L2_CAP_TIMEPERFRAME not supported");
   }
@@ -1041,85 +1041,53 @@ bool UsbCam::grab_image()
   return true;
 }
 
-// enables/disables auto focus
-bool UsbCam::set_auto_focus(int value)
-{
+void UsbCam::query_ctrls(std::vector<ctrl>& ctrls) {
   struct v4l2_queryctrl queryctrl;
-  struct v4l2_ext_control control;
 
   memset(&queryctrl, 0, sizeof(queryctrl));
-  queryctrl.id = V4L2_CID_FOCUS_AUTO;
+  queryctrl.id = V4L2_CTRL_CLASS_USER | V4L2_CTRL_FLAG_NEXT_CTRL;
 
-  if (-1 == xioctl(fd_, VIDIOC_QUERYCTRL, &queryctrl)) {
-    if (errno != EINVAL) {
-      ROS_ERROR("VIDIOC_QUERYCTRL");
-      return false;
-    } else {
-      ROS_ERROR("V4L2_CID_FOCUS_AUTO is not supported");
-      return false;
-    }
-  } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
-    ROS_ERROR("V4L2_CID_FOCUS_AUTO is not supported");
-    return false;
-  } else {
-    memset(&control, 0, sizeof(control));
-    control.id = V4L2_CID_FOCUS_AUTO;
-    control.value = value;
+  while (0 == xioctl(fd_, VIDIOC_QUERYCTRL, &queryctrl)) {
+    if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+        continue;
 
-    if (-1 == xioctl(fd_, VIDIOC_S_CTRL, &control)) {
-      ROS_ERROR("VIDIOC_S_CTRL");
-      return false;
-    }
-  }
-  return true;
-}
+    struct v4l2_control getctrl;
+    getctrl.id = queryctrl.id;
+    xioctl(fd_, VIDIOC_G_CTRL, &getctrl);
 
-/**
-* Set video device parameter via call to v4l-utils.
-*
-* @param param The name of the parameter to set
-* @param param The value to assign
-*/
-bool UsbCam::set_v4l_parameter(const std::string & param, int value)
-{
-  char buf[33];
-  snprintf(buf, sizeof(buf), "%i", value);
-  return set_v4l_parameter(param, buf);
-}
+    ctrl c;
+    c.id = queryctrl.id;
+    c.value = getctrl.value;
+    c.default_value = queryctrl.default_value;
+    c.min_value = queryctrl.minimum;
+    c.max_value = queryctrl.maximum;
+    c.name = name2var(reinterpret_cast<char*>(queryctrl.name));
 
-/**
-* Set video device parameter via call to v4l-utils.
-*
-* @param param The name of the parameter to set
-* @param param The value to assign
-*/
-bool UsbCam::set_v4l_parameter(const std::string & param, const std::string & value)
-{
-  // build the command
-  std::stringstream ss;
-  ss << "v4l2-ctl --device=" << camera_dev_ << " -c " << param << "=" << value << " 2>&1";
-  std::string cmd = ss.str();
+    if (queryctrl.type == V4L2_CTRL_TYPE_MENU) {
+      struct v4l2_querymenu querymenu;
+      memset(&querymenu, 0, sizeof(querymenu));
+      querymenu.id = queryctrl.id;
 
-  // capture the output
-  std::string output;
-  const int kBufferSize = 256;
-  char buffer[kBufferSize];
-  FILE * stream = popen(cmd.c_str(), "r");
-  if (stream) {
-    while (!feof(stream)) {
-      if (fgets(buffer, kBufferSize, stream) != NULL) {
-        output.append(buffer);
+      for (querymenu.index = queryctrl.minimum;
+          querymenu.index <= queryctrl.maximum;
+          querymenu.index++) {
+        if (0 == xioctl(fd_, VIDIOC_QUERYMENU, &querymenu)) {
+          c.menu[std::string(reinterpret_cast<char*>(querymenu.name))] = querymenu.index;
+        }
       }
     }
-    pclose(stream);
-    // any output should be an error
-    if (output.length() > 0) {
-      ROS_WARN("%s", output.c_str());
-    }
-  } else {
-    ROS_WARN("usb_cam_node could not run '%s'", cmd.c_str());
+
+    ctrls.push_back(c);
+
+    queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
   }
-  return true;
+}
+
+void UsbCam::set_ctrl(int32_t id, int32_t value){
+  struct v4l2_control setctrl;
+  setctrl.id = id;
+  setctrl.value = value;
+  xioctl(fd_, VIDIOC_S_CTRL, &setctrl);
 }
 
 UsbCam::io_method UsbCam::io_method_from_string(const std::string & str)

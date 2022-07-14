@@ -49,12 +49,23 @@ extern "C"
 
 #include <ros/time.h>
 
+#include <map>
 #include <string>
 #include <vector>
 #include <sstream>
 
 namespace usb_cam
 {
+
+struct ctrl {
+  uint32_t id;
+  std::string name;
+  int32_t value;
+  int32_t default_value;
+  int32_t min_value;
+  int32_t max_value;
+  std::map<std::string, int32_t> menu;
+};
 
 
 class UsbCam
@@ -104,12 +115,8 @@ public:
 
   void get_formats();
 
-  // enables/disable auto focus
-  bool set_auto_focus(int value);
-
-  // Set video device parameters
-  bool set_v4l_parameter(const std::string & param, int value);
-  bool set_v4l_parameter(const std::string & param, const std::string & value);
+  void query_ctrls(std::vector<ctrl>& ctrls);
+  void set_ctrl(int32_t id, int32_t value);
 
   static io_method io_method_from_string(const std::string & str);
   static pixel_format pixel_format_from_string(const std::string & str);

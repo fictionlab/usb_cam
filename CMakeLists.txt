@@ -3,6 +3,7 @@ project(usb_cam)
 
 find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
+  ddynamic_reconfigure
   image_transport
   nodelet
   roscpp
@@ -44,15 +45,12 @@ target_link_libraries(${PROJECT_NAME}
 add_library(${PROJECT_NAME}_nodelet src/usb_cam_nodelet.cpp)
 target_link_libraries(${PROJECT_NAME}_nodelet
   ${PROJECT_NAME}
-  ${avcodec_LIBRARIES}
-  ${swscale_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
 ## Declare a cpp executable
 add_executable(${PROJECT_NAME}_node src/usb_cam_node.cpp)
 target_link_libraries(${PROJECT_NAME}_node
-  ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 

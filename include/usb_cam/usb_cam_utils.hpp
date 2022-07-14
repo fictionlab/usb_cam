@@ -31,6 +31,7 @@
 
 #include <sys/ioctl.h>
 
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
@@ -376,5 +377,32 @@ std::string fcc2s(unsigned int val)
 		s += "-BE";
 	return s;
 }
+
+std::string toLowerUnderscore(char* str) {
+    std::string out(str);
+    std::transform(out.begin(), out.end(), out.begin(), [](unsigned char ch) {
+        return ch == ' ' ? ' ' : std::tolower(ch); 
+    });
+    return out;
+}
+
+std::string name2var(const char *name)
+{
+	std::string s;
+	int add_underscore = 0;
+
+	while (*name) {
+		if (isalnum(*name)) {
+			if (add_underscore)
+				s += '_';
+			add_underscore = 0;
+			s += std::string(1, tolower(*name));
+		}
+		else if (s.length()) add_underscore = 1;
+		name++;
+	}
+	return s;
+}
+
 }  // namespace usb_cam
 #endif  // USB_CAM__USB_CAM_UTILS_HPP_
