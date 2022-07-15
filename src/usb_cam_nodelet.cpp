@@ -225,6 +225,8 @@ void UsbCamNodelet::register_ctrls(ros::NodeHandle &nh) {
     nh.param(std::string("ctrls/") + c.name, c.value, c.value);
   }
 
+  ddr_->publishServicesTopics();
+
   bool reset = nh.param("reset_ctrls", false);
   if (reset)
     reset_ctrls();
@@ -237,7 +239,7 @@ void UsbCamNodelet::register_ctrls(ros::NodeHandle &nh) {
     }
   }
 
-  ddr_->publishServicesTopics();
+  ddr_->updatePublishedInformation();
 }
 
 } // namespace usb_cam
