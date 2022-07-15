@@ -40,10 +40,11 @@ public:
 private:
   bool callback_toggle_cap(std_srvs::SetBool::Request &, std_srvs::SetBool::Response &);
   bool callback_reset_ctrls(std_srvs::Trigger::Request &, std_srvs::Trigger::Response &);
+  void reset_ctrls();
   void spin();
   bool take_and_send_image();
   void get_params(ros::NodeHandle &);
-  void register_controls();
+  void register_ctrls(ros::NodeHandle &);
 
   sensor_msgs::ImagePtr img_;
   image_transport::CameraPublisher image_pub_;
@@ -82,8 +83,6 @@ void UsbCamNodelet::onInit() {
 
   get_params(pnh);
 
-  ddr_ = new ddynamic_reconfigure::DDynamicReconfigure(pnh);
-
   cinfo_ = new camera_info_manager::CameraInfoManager(pnh, camera_name_, camera_info_url_);
 
   if (!cinfo_->isCalibrated()) {
@@ -118,7 +117,7 @@ void UsbCamNodelet::onInit() {
 
   cam_.start(video_device_name_.c_str(), io_method, pixel_format, color_format, image_width_,
              image_height_, framerate_);
-  register_controls();
+  register_ctrls(pnh);
 
   service_toggle_capture_ =
       pnh.advertiseService("toggle_capture", &UsbCamNodelet::callback_toggle_cap, this);
@@ -149,14 +148,18 @@ bool UsbCamNodelet::callback_toggle_cap(std_srvs::SetBool::Request &req,
 
 bool UsbCamNodelet::callback_reset_ctrls(std_srvs::Trigger::Request &,
                                          std_srvs::Trigger::Response &res) {
+  reset_ctrls();
+  res.success = true;
+  return true;
+}
+
+void UsbCamNodelet::reset_ctrls() {
+  NODELET_INFO("Resetting v4l ctrls to default values");
   for (auto &c : ctrls_) {
     c.value = c.default_value;
     cam_.set_ctrl(c.id, c.value);
   }
   ddr_->updatePublishedInformation();
-
-  res.success = true;
-  return true;
 }
 
 void UsbCamNodelet::spin() {
@@ -204,8 +207,11 @@ void UsbCamNodelet::get_params(ros::NodeHandle &nh) {
   nh.param("camera_info_url", camera_info_url_, std::string());
 }
 
-void UsbCamNodelet::register_controls() {
+void UsbCamNodelet::register_ctrls(ros::NodeHandle &nh) {
+  ddr_ = new ddynamic_reconfigure::DDynamicReconfigure(nh);
+
   cam_.query_ctrls(ctrls_);
+
   for (auto &c : ctrls_) {
     auto callback =
         boost::function<void(int)>([&cam = cam_, id = c.id](int val) { cam.set_ctrl(id, val); });
@@ -214,6 +220,20 @@ void UsbCamNodelet::register_controls() {
       ddr_->registerVariable(c.name, &c.value, callback, "", c.min_value, c.max_value);
     } else {
       ddr_->registerEnumVariable(c.name, &c.value, callback, "", c.menu, "");
+    }
+
+    nh.param(std::string("ctrls/") + c.name, c.value, c.value);
+  }
+
+  bool reset = nh.param("reset_ctrls", false);
+  if (reset)
+    reset_ctrls();
+
+  for (auto &c : ctrls_) {
+    std::string param_name = "ctrls/" + c.name;
+    if (nh.hasParam(param_name)) {
+      nh.getParam(param_name, c.value);
+      cam_.set_ctrl(c.id, c.value);
     }
   }
 
